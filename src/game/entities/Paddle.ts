@@ -34,10 +34,17 @@ export class Paddle {
   move(direction: 'up' | 'down' | 'stop', delta: number) {
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     
+    if (!body) {
+      console.error('Paddle body not initialized!');
+      return;
+    }
+    
     if (direction === 'up') {
       body.setVelocityY(-PADDLE_CONFIG.speed);
+      console.log(`${this.side} paddle moving UP`, body.velocity.y);
     } else if (direction === 'down') {
       body.setVelocityY(PADDLE_CONFIG.speed);
+      console.log(`${this.side} paddle moving DOWN`, body.velocity.y);
     } else {
       body.setVelocityY(0);
     }

@@ -20,6 +20,9 @@ export const GAME_CONFIG = {
     pixelArt: false,
     roundPixels: false,
   },
+  input: {
+    keyboard: true,
+  },
 };
 
 export const PADDLE_CONFIG = {

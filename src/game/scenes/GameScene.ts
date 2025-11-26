@@ -191,13 +191,18 @@ export class GameScene extends Phaser.Scene {
   }
   
   private setupInput() {
-    if (!this.input.keyboard) return;
+    if (!this.input.keyboard) {
+      console.error('Keyboard input not available!');
+      return;
+    }
     
     this.cursors = this.input.keyboard.createCursorKeys();
     this.wasdKeys = this.input.keyboard.addKeys({
       up: Phaser.Input.Keyboard.KeyCodes.W,
       down: Phaser.Input.Keyboard.KeyCodes.S,
     });
+    
+    console.log('Input setup complete', { cursors: this.cursors, wasdKeys: this.wasdKeys });
   }
   
   update(time: number, delta: number) {
@@ -214,6 +219,12 @@ export class GameScene extends Phaser.Scene {
   }
   
   private handleInput(delta: number) {
+    // Safety check
+    if (!this.cursors || !this.wasdKeys) {
+      console.warn('Input not initialized');
+      return;
+    }
+    
     if (this.gameMode === 'local') {
       // Left paddle (WASD)
       if (this.wasdKeys.up.isDown) {
