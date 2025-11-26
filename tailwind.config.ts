@@ -13,7 +13,15 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        orbitron: ['Orbitron', 'sans-serif'],
+      },
       colors: {
+        'neon-cyan': 'hsl(var(--neon-cyan))',
+        'neon-pink': 'hsl(var(--neon-pink))',
+        'neon-purple': 'hsl(var(--neon-purple))',
+        'deep-space': 'hsl(var(--deep-space))',
+        'cyber-grid': 'hsl(var(--cyber-grid))',
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -84,6 +92,14 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "pulse-glow": "pulse-glow 2s ease-in-out infinite",
+        "slide-in": "slide-in 0.3s ease-out",
+        "fade-in": "fade-in 0.3s ease-out",
+      },
+      boxShadow: {
+        'neon': 'var(--shadow-neon)',
+        'neon-pink': 'var(--shadow-pink)',
+        'neon-purple': 'var(--shadow-purple)',
       },
     },
   },
