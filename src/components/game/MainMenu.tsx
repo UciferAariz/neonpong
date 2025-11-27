@@ -1,8 +1,11 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Gamepad2, Users, Trophy, Settings, Bot } from 'lucide-react';
+import { Gamepad2, Users, Trophy, Settings, Bot, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 
 interface MainMenuProps {
   onModeSelect: (mode: 'local' | 'online' | 'ai') => void;
@@ -10,6 +13,17 @@ interface MainMenuProps {
 
 const MainMenu = ({ onModeSelect }: MainMenuProps) => {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({
+      title: 'Signed out',
+      description: 'You have been signed out successfully.',
+    });
+  };
   
   const menuItems = [
     {
@@ -95,24 +109,57 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8, delay: 0.6 }}
-        className="flex gap-4"
+        className="flex flex-wrap gap-4 justify-center"
       >
-        <Button 
-          variant="outline" 
-          size="lg" 
-          className="border-primary/50 hover:border-primary hover:bg-primary/10"
-        >
-          <Trophy className="mr-2" />
-          Leaderboard
-        </Button>
-        <Button 
-          variant="outline" 
-          size="lg"
-          className="border-primary/50 hover:border-primary hover:bg-primary/10"
-        >
-          <Settings className="mr-2" />
-          Settings
-        </Button>
+        {user ? (
+          <>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="border-primary/50 hover:border-primary hover:bg-primary/10"
+            >
+              <User className="mr-2" />
+              Profile
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="border-primary/50 hover:border-primary hover:bg-primary/10"
+            >
+              <Trophy className="mr-2" />
+              Leaderboard
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg"
+              onClick={handleSignOut}
+              className="border-destructive/50 hover:border-destructive hover:bg-destructive/10"
+            >
+              <LogOut className="mr-2" />
+              Sign Out
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              onClick={() => navigate('/auth')}
+              className="border-primary/50 hover:border-primary hover:bg-primary/10"
+            >
+              <User className="mr-2" />
+              Login / Sign Up
+            </Button>
+            <Button 
+              variant="outline" 
+              size="lg" 
+              className="border-primary/50 hover:border-primary hover:bg-primary/10"
+            >
+              <Trophy className="mr-2" />
+              Leaderboard
+            </Button>
+          </>
+        )}
       </motion.div>
       
       <motion.div
@@ -123,6 +170,11 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
       >
         <p>Press W/S for left paddle • Arrow keys for right paddle</p>
         <p className="mt-1">Target: {11} points to win</p>
+        {!user && (
+          <p className="mt-2 text-primary/70">
+            Sign in to track your stats and climb the leaderboard!
+          </p>
+        )}
       </motion.div>
     </div>
   );
