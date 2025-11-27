@@ -1,10 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { GameScene } from '@/game/scenes/GameScene';
 import { GAME_CONFIG } from '@/game/config/gameConfig';
+import ExitConfirmDialog from './ExitConfirmDialog';
 
 interface GameCanvasProps {
-  mode: 'local' | 'online';
+  mode: 'local' | 'online' | 'ai';
   side?: 'left' | 'right';
   onGameEnd?: () => void;
 }
@@ -12,6 +13,7 @@ interface GameCanvasProps {
 const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [showExitDialog, setShowExitDialog] = useState(false);
   
   useEffect(() => {
     if (!containerRef.current || gameRef.current) return;
@@ -29,9 +31,13 @@ const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
     
     gameRef.current = new Phaser.Game(config);
     
-    // Start game scene
+    // Start game scene with exit callback
     if (gameRef.current.scene.keys['GameScene']) {
-      gameRef.current.scene.start('GameScene', { mode, side });
+      gameRef.current.scene.start('GameScene', { 
+        mode, 
+        side,
+        onExitRequest: () => setShowExitDialog(true)
+      });
     }
     
     // Auto-focus the game canvas
@@ -52,7 +58,24 @@ const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
     };
   }, [mode, side]);
   
+  const handleConfirmExit = () => {
+    setShowExitDialog(false);
+    if (onGameEnd) {
+      onGameEnd();
+    }
+  };
+  
+  const handleCancelExit = () => {
+    setShowExitDialog(false);
+    // Resume the game by calling the scene's resume method
+    const scene = gameRef.current?.scene?.scenes?.[0] as GameScene;
+    if (scene && scene.resumeGame) {
+      scene.resumeGame();
+    }
+  };
+  
   return (
+    <>
     <div className="relative w-full h-full flex items-center justify-center bg-deep-space">
       <div 
         ref={containerRef} 
@@ -67,10 +90,17 @@ const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
         }}
       />
       <div className="absolute bottom-4 left-4 text-xs text-foreground/50 bg-background/80 px-3 py-2 rounded">
-        <p>🎮 W/S for left paddle • ↑/↓ for right paddle</p>
-        <p className="mt-1">Click on game to focus if keys don't work</p>
+        <p>🎮 {mode === 'ai' ? 'W/S or ↑/↓ to control your paddle' : 'W/S for left paddle • ↑/↓ for right paddle'}</p>
+        <p className="mt-1">Press ESC to exit • Click to focus if keys don't work</p>
       </div>
+      
+      <ExitConfirmDialog 
+        open={showExitDialog}
+        onOpenChange={handleCancelExit}
+        onConfirmExit={handleConfirmExit}
+      />
     </div>
+    </>
   );
 };
 
