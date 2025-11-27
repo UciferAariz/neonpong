@@ -20,6 +20,7 @@ export default {
         'neon-cyan': 'hsl(var(--neon-cyan))',
         'neon-pink': 'hsl(var(--neon-pink))',
         'neon-purple': 'hsl(var(--neon-purple))',
+        'neon-green': 'hsl(var(--neon-green))',
         'deep-space': 'hsl(var(--deep-space))',
         'cyber-grid': 'hsl(var(--cyber-grid))',
         border: "hsl(var(--border))",

@@ -2,10 +2,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { Gamepad2, Users, Trophy, Settings } from 'lucide-react';
+import { Gamepad2, Users, Trophy, Settings, Bot } from 'lucide-react';
 
 interface MainMenuProps {
-  onModeSelect: (mode: 'local' | 'online') => void;
+  onModeSelect: (mode: 'local' | 'online' | 'ai') => void;
 }
 
 const MainMenu = ({ onModeSelect }: MainMenuProps) => {
@@ -13,18 +13,25 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
   
   const menuItems = [
     {
+      id: 'ai',
+      title: 'vs Computer',
+      description: 'Play against an AI opponent',
+      icon: Bot,
+      gradient: 'from-neon-cyan to-neon-green',
+    },
+    {
       id: 'local',
       title: 'Local 2-Player',
       description: 'Play on the same device with a friend',
       icon: Gamepad2,
-      gradient: 'from-neon-cyan to-neon-purple',
+      gradient: 'from-neon-purple to-neon-cyan',
     },
     {
       id: 'online',
       title: 'Online Multiplayer',
       description: 'Create or join a room to play online',
       icon: Users,
-      gradient: 'from-neon-purple to-neon-pink',
+      gradient: 'from-neon-pink to-neon-purple',
     },
   ];
   
@@ -44,7 +51,7 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
         </p>
       </motion.div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full mb-12">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full mb-12">
         {menuItems.map((item, index) => {
           const Icon = item.icon;
           return (
@@ -62,7 +69,7 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
                   transition-all duration-300 hover:scale-105
                   ${hoveredCard === item.id ? 'border-primary shadow-neon' : 'border-border'}
                 `}
-                onClick={() => onModeSelect(item.id as 'local' | 'online')}
+                onClick={() => onModeSelect(item.id as 'local' | 'online' | 'ai')}
               >
                 <div className="p-8 flex flex-col items-center text-center space-y-4">
                   <div 

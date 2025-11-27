@@ -28,8 +28,11 @@ export class GameScene extends Phaser.Scene {
   // Controls
   private cursors!: Phaser.Types.Input.Keyboard.CursorKeys;
   private wasdKeys!: any;
-  private gameMode: 'local' | 'online';
+  private escKey!: Phaser.Input.Keyboard.Key;
+  private gameMode: 'local' | 'online' | 'ai';
   private localSide: 'left' | 'right';
+  private isPaused: boolean = false;
+  public onExitRequest?: () => void;
   
   constructor() {
     super({ key: 'GameScene' });
@@ -37,9 +40,10 @@ export class GameScene extends Phaser.Scene {
     this.localSide = 'left';
   }
   
-  init(data: { mode?: 'local' | 'online'; side?: 'left' | 'right' }) {
+  init(data: { mode?: 'local' | 'online' | 'ai'; side?: 'left' | 'right'; onExitRequest?: () => void }) {
     this.gameMode = data.mode || 'local';
     this.localSide = data.side || 'left';
+    this.onExitRequest = data.onExitRequest;
   }
   
   preload() {
@@ -202,14 +206,34 @@ export class GameScene extends Phaser.Scene {
       down: Phaser.Input.Keyboard.KeyCodes.S,
     });
     
+    // ESC key for exit
+    this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+    this.escKey.on('down', () => {
+      if (!this.isPaused && this.onExitRequest) {
+        this.isPaused = true;
+        this.physics.pause();
+        this.onExitRequest();
+      }
+    });
+    
     console.log('Input setup complete', { cursors: this.cursors, wasdKeys: this.wasdKeys });
   }
   
+  public resumeGame() {
+    this.isPaused = false;
+    this.physics.resume();
+  }
+  
   update(time: number, delta: number) {
-    if (this.gameState.gameOver) return;
+    if (this.gameState.gameOver || this.isPaused) return;
     
     // Handle input
     this.handleInput(delta);
+    
+    // AI control for right paddle in AI mode
+    if (this.gameMode === 'ai') {
+      this.handleAI(delta);
+    }
     
     // Update ball
     this.ball.update();
@@ -243,6 +267,16 @@ export class GameScene extends Phaser.Scene {
       } else {
         this.rightPaddle.move('stop', delta);
       }
+    } else if (this.gameMode === 'ai') {
+      // Player controls left paddle with both WASD and Arrow keys
+      if (this.cursors.up.isDown || this.wasdKeys.up.isDown) {
+        this.leftPaddle.move('up', delta);
+      } else if (this.cursors.down.isDown || this.wasdKeys.down.isDown) {
+        this.leftPaddle.move('down', delta);
+      } else {
+        this.leftPaddle.move('stop', delta);
+      }
+      // Right paddle is controlled by AI (see handleAI method)
     } else {
       // Online mode - only control one paddle
       const paddle = this.localSide === 'left' ? this.leftPaddle : this.rightPaddle;
@@ -254,6 +288,21 @@ export class GameScene extends Phaser.Scene {
       } else {
         paddle.move('stop', delta);
       }
+    }
+  }
+  
+  private handleAI(delta: number) {
+    const ballY = this.ball.sprite.y;
+    const paddleY = this.rightPaddle.sprite.y;
+    const threshold = 20; // Dead zone to prevent jittering
+    
+    // AI follows the ball with some delay for realistic difficulty
+    if (ballY < paddleY - threshold) {
+      this.rightPaddle.move('up', delta);
+    } else if (ballY > paddleY + threshold) {
+      this.rightPaddle.move('down', delta);
+    } else {
+      this.rightPaddle.move('stop', delta);
     }
   }
   

@@ -4,16 +4,18 @@ import GameCanvas from '@/components/game/GameCanvas';
 import MainMenu from '@/components/game/MainMenu';
 import RoomManager from '@/components/game/RoomManager';
 
-type GameState = 'menu' | 'room-manager' | 'local-game' | 'online-game';
+type GameState = 'menu' | 'room-manager' | 'local-game' | 'ai-game' | 'online-game';
 
 const Game = () => {
   const [gameState, setGameState] = useState<GameState>('menu');
   const [isHost, setIsHost] = useState(false);
   const navigate = useNavigate();
   
-  const handleModeSelect = (mode: 'local' | 'online') => {
+  const handleModeSelect = (mode: 'local' | 'online' | 'ai') => {
     if (mode === 'local') {
       setGameState('local-game');
+    } else if (mode === 'ai') {
+      setGameState('ai-game');
     } else {
       setGameState('room-manager');
     }
@@ -44,6 +46,14 @@ const Game = () => {
     return (
       <div className="min-h-screen bg-deep-space">
         <GameCanvas mode="local" onGameEnd={handleGameEnd} />
+      </div>
+    );
+  }
+  
+  if (gameState === 'ai-game') {
+    return (
+      <div className="min-h-screen bg-deep-space">
+        <GameCanvas mode="ai" onGameEnd={handleGameEnd} />
       </div>
     );
   }
