@@ -30,7 +30,7 @@ export class Ball {
     // Enable physics
     scene.physics.add.existing(this.sprite);
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
-    body.setCollideWorldBounds(true);
+    body.setCollideWorldBounds(false); // Don't collide with left/right walls for scoring
     body.setBounce(1, 1);
     body.setCircle(BALL_CONFIG.radius);
   }
@@ -60,8 +60,18 @@ export class Ball {
     this.updateTrail();
     this.updateGlow();
     
-    // Gradually increase speed
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    
+    // Handle top/bottom wall bounces manually
+    if (this.sprite.y <= BALL_CONFIG.radius) {
+      this.sprite.y = BALL_CONFIG.radius;
+      body.velocity.y = Math.abs(body.velocity.y);
+    } else if (this.sprite.y >= GAME_CONFIG.height - BALL_CONFIG.radius) {
+      this.sprite.y = GAME_CONFIG.height - BALL_CONFIG.radius;
+      body.velocity.y = -Math.abs(body.velocity.y);
+    }
+    
+    // Gradually increase speed
     const currentVelocity = Math.sqrt(body.velocity.x ** 2 + body.velocity.y ** 2);
     
     if (currentVelocity > 0 && currentVelocity < BALL_CONFIG.maxSpeed) {
