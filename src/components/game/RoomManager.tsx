@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Copy, ArrowLeft, Plus, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { socketClient } from '@/lib/socketClient';
 
 interface RoomManagerProps {
   onBack: () => void;
@@ -17,6 +18,7 @@ const RoomManager = ({ onBack, onRoomReady }: RoomManagerProps) => {
   const [roomId, setRoomId] = useState('');
   const [roomPass, setRoomPass] = useState('');
   const [createdRoom, setCreatedRoom] = useState<{ id: string; pass: string } | null>(null);
+  const [waiting, setWaiting] = useState(false);
   const { toast } = useToast();
   
   const handleCreateRoom = () => {
@@ -26,10 +28,10 @@ const RoomManager = ({ onBack, onRoomReady }: RoomManagerProps) => {
     
     setCreatedRoom({ id: newRoomId, pass: newRoomPass });
     setMode('create');
-    
+    setWaiting(true);
     toast({
       title: 'Room Created!',
-      description: 'Share the Room ID and Password with your friend',
+      description: 'Share the Room ID and Password with your friend. Waiting for opponent to join...',
     });
   };
   
@@ -171,16 +173,42 @@ const RoomManager = ({ onBack, onRoomReady }: RoomManagerProps) => {
               </div>
               
               <div className="pt-4 text-center">
-                <p className="text-sm text-foreground/60 mb-4">
+                <p className="text-sm text-foreground/60 mb-4 flex items-center justify-center gap-3">
+                  <svg className="w-5 h-5 animate-spin text-cyan-300" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+                  </svg>
                   Waiting for opponent to join...
                 </p>
-                <Button
-                  onClick={() => onRoomReady(createdRoom.id, true)}
-                  size="lg"
-                  className="bg-gradient-to-r from-neon-cyan to-neon-purple hover:shadow-neon"
-                >
-                  Start Game (Test Mode)
-                </Button>
+                <div className="flex items-center justify-center gap-4">
+                  <Button
+                    onClick={() => {
+                      // Cancel waiting and go back to menu
+                      setMode('select');
+                      setCreatedRoom(null);
+                      setWaiting(false);
+                    }}
+                    size="md"
+                    variant="ghost"
+                    className="border-border"
+                  >
+                    Cancel
+                  </Button>
+
+                  {/* Manual start for testing when backend isn't available */}
+                  <div className="flex flex-col items-start">
+                    {!socketClient.isConnected() && (
+                      <p className="text-xs text-foreground/60 mb-2">Backend not connected — waiting will not auto-start. Use manual start to continue for testing.</p>
+                    )}
+                    <Button
+                      onClick={() => onRoomReady(createdRoom.id, true)}
+                      size="md"
+                      className="bg-gradient-to-r from-neon-cyan to-neon-purple hover:shadow-neon"
+                    >
+                      Start When Ready (Manual)
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>

@@ -38,6 +38,18 @@ const Auth = () => {
       
       authSchema.parse(validationData);
 
+      // Check if Supabase is properly configured
+      if (!supabase || typeof supabase.auth === 'undefined') {
+        toast({
+          title: 'Demo Mode',
+          description: 'Authentication is not configured. Add Supabase credentials to .env.local to enable real authentication.',
+          variant: 'default',
+        });
+        // Allow navigation to game in demo mode
+        setTimeout(() => navigate('/game'), 1500);
+        return;
+      }
+
       if (isLogin) {
         // Login
         const { error } = await supabase.auth.signInWithPassword({

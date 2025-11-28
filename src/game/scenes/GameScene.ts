@@ -31,8 +31,11 @@ export class GameScene extends Phaser.Scene {
   private escKey!: Phaser.Input.Keyboard.Key;
   private gameMode: 'local' | 'online' | 'ai';
   private localSide: 'left' | 'right';
+  private aiDifficulty: 'easy' | 'medium' | 'hard' = 'medium';
   private isPaused: boolean = false;
+  private initCalled: boolean = false;  // Track if init was called
   public onExitRequest?: () => void;
+  public onGameEnd?: (leftScore: number, rightScore: number) => void;
   
   constructor() {
     super({ key: 'GameScene' });
@@ -40,10 +43,14 @@ export class GameScene extends Phaser.Scene {
     this.localSide = 'left';
   }
   
-  init(data: { mode?: 'local' | 'online' | 'ai'; side?: 'left' | 'right'; onExitRequest?: () => void }) {
+  init(data: { mode?: 'local' | 'online' | 'ai'; side?: 'left' | 'right'; difficulty?: 'easy' | 'medium' | 'hard'; onExitRequest?: () => void; onGameEnd?: (leftScore: number, rightScore: number) => void }) {
+    this.initCalled = true;
     this.gameMode = data.mode || 'local';
     this.localSide = data.side || 'left';
+    this.aiDifficulty = data.difficulty || 'medium';
     this.onExitRequest = data.onExitRequest;
+    this.onGameEnd = data.onGameEnd;
+    console.log('✅ GameScene.init() - mode:', this.gameMode, 'side:', this.localSide, 'difficulty:', this.aiDifficulty);
   }
   
   preload() {
@@ -56,6 +63,11 @@ export class GameScene extends Phaser.Scene {
   }
   
   create() {
+    if (!this.initCalled) {
+      console.error('❌ WARNING: init() was not called! gameMode is:', this.gameMode);
+    }
+    console.log('GameScene.create() - mode:', this.gameMode);
+    
     // Background grid effect
     this.createBackground();
     
@@ -250,6 +262,7 @@ export class GameScene extends Phaser.Scene {
     }
     
     if (this.gameMode === 'local') {
+      // ===== LOCAL MODE: Both paddles controlled by player =====
       // Left paddle (WASD)
       if (this.wasdKeys.up.isDown) {
         this.leftPaddle.move('up', delta);
@@ -267,8 +280,10 @@ export class GameScene extends Phaser.Scene {
       } else {
         this.rightPaddle.move('stop', delta);
       }
-    } else if (this.gameMode === 'ai') {
-      // Player controls left paddle with both WASD and Arrow keys
+    } 
+    else if (this.gameMode === 'ai') {
+      // ===== AI MODE: Left paddle controlled by player, right by AI =====
+      // Left paddle (WASD or Arrow keys)
       if (this.cursors.up.isDown || this.wasdKeys.up.isDown) {
         this.leftPaddle.move('up', delta);
       } else if (this.cursors.down.isDown || this.wasdKeys.down.isDown) {
@@ -276,9 +291,10 @@ export class GameScene extends Phaser.Scene {
       } else {
         this.leftPaddle.move('stop', delta);
       }
-      // Right paddle is controlled by AI (see handleAI method)
-    } else {
-      // Online mode - only control one paddle
+      // Right paddle is controlled ONLY by handleAI()
+    } 
+    else if (this.gameMode === 'online') {
+      // ===== ONLINE MODE: Only player's paddle controlled =====
       const paddle = this.localSide === 'left' ? this.leftPaddle : this.rightPaddle;
       
       if (this.cursors.up.isDown || this.wasdKeys.up.isDown) {
@@ -288,21 +304,81 @@ export class GameScene extends Phaser.Scene {
       } else {
         paddle.move('stop', delta);
       }
+    } 
+    else {
+      console.error('❌ UNKNOWN GAME MODE:', this.gameMode);
     }
   }
   
   private handleAI(delta: number) {
-    const ballY = this.ball.sprite.y;
-    const paddleY = this.rightPaddle.sprite.y;
-    const threshold = 20; // Dead zone to prevent jittering
-    
-    // AI follows the ball with some delay for realistic difficulty
-    if (ballY < paddleY - threshold) {
-      this.rightPaddle.move('up', delta);
-    } else if (ballY > paddleY + threshold) {
-      this.rightPaddle.move('down', delta);
-    } else {
-      this.rightPaddle.move('stop', delta);
+    // AI for right paddle - proportional velocity to reduce jitter
+    try {
+      if (!this.ball?.sprite || !this.rightPaddle?.sprite) {
+        return;
+      }
+
+      const ballY = this.ball.sprite.y;
+      // Phaser rectangles use y as the center, so sprite.y already is paddle center
+      const paddleY = this.rightPaddle.sprite.y;
+      const paddleCenterY = paddleY;
+
+      // Distance from paddle center to ball center
+      const distance = ballY - paddleCenterY;
+
+      // Configure AI parameters per difficulty
+      const ballVelX = (this.ball.sprite.body as Phaser.Physics.Arcade.Body).velocity.x || 0;
+      let k = 14;
+      let midFactor = 0.6;
+      let snapThreshold = 6;
+      let sprintAlpha = 0.18;
+      let followAlpha = 0.08;
+
+      switch (this.aiDifficulty) {
+        case 'easy':
+          k = 8;
+          midFactor = 0.75;
+          snapThreshold = 10;
+          sprintAlpha = 0.22;
+          followAlpha = 0.12;
+          break;
+        case 'hard':
+          k = 20;
+          midFactor = 0.5;
+          snapThreshold = 4;
+          sprintAlpha = 0.12;
+          followAlpha = 0.06;
+          break;
+        default:
+          // medium already set
+          break;
+      }
+
+      const midThreshold = GAME_CONFIG.width * midFactor;
+      const minY = PADDLE_CONFIG.height / 2;
+      const maxY = GAME_CONFIG.height - PADDLE_CONFIG.height / 2;
+      if (Math.abs(distance) < snapThreshold) {
+        // stop movement and align center to ball Y
+        this.rightPaddle.setVelocity(0);
+        const targetY = Phaser.Math.Clamp(this.ball.sprite.y, minY, maxY);
+        this.rightPaddle.setPosition(this.rightPaddle.sprite.x, targetY);
+        return;
+      }
+
+      if (ballVelX > 0 && (this.ball.sprite.x > midThreshold)) {
+        // Ball is coming toward the AI and is relatively close horizontally — sprint
+        const sprintVel = Math.sign(distance) * PADDLE_CONFIG.speed;
+        // Use smoothed velocity to avoid immediate jumps
+        this.rightPaddle.setVelocitySmoothed(sprintVel, sprintAlpha);
+      } else {
+        // Proportional control for fine adjustments
+        const desiredVel = Phaser.Math.Clamp(distance * k, -PADDLE_CONFIG.speed, PADDLE_CONFIG.speed);
+
+        // Smooth toward desired velocity
+        this.rightPaddle.setVelocitySmoothed(desiredVel, followAlpha);
+      }
+
+    } catch (error) {
+      console.error('❌ Error in handleAI:', error);
     }
   }
   
@@ -355,6 +431,11 @@ export class GameScene extends Phaser.Scene {
   private endGame(winner: 'left' | 'right') {
     this.gameState.gameOver = true;
     this.gameState.winner = winner;
+    
+    // Call the onGameEnd callback if provided
+    if (this.onGameEnd) {
+      this.onGameEnd(this.gameState.leftScore, this.gameState.rightScore);
+    }
     
     const winnerText = this.add.text(
       GAME_CONFIG.width / 2,

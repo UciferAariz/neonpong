@@ -9,12 +9,14 @@ type GameState = 'menu' | 'room-manager' | 'local-game' | 'ai-game' | 'online-ga
 const Game = () => {
   const [gameState, setGameState] = useState<GameState>('menu');
   const [isHost, setIsHost] = useState(false);
+  const [aiDifficulty, setAiDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
   const navigate = useNavigate();
   
-  const handleModeSelect = (mode: 'local' | 'online' | 'ai') => {
+  const handleModeSelect = (mode: 'local' | 'online' | 'ai', difficulty?: 'easy' | 'medium' | 'hard') => {
     if (mode === 'local') {
       setGameState('local-game');
     } else if (mode === 'ai') {
+      if (difficulty) setAiDifficulty(difficulty);
       setGameState('ai-game');
     } else {
       setGameState('room-manager');
@@ -53,7 +55,7 @@ const Game = () => {
   if (gameState === 'ai-game') {
     return (
       <div className="min-h-screen bg-deep-space">
-        <GameCanvas mode="ai" onGameEnd={handleGameEnd} />
+        <GameCanvas mode="ai" side="left" onGameEnd={handleGameEnd} difficulty={aiDifficulty} />
       </div>
     );
   }

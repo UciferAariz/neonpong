@@ -6,13 +6,15 @@ import { Card } from '@/components/ui/card';
 import { Gamepad2, Users, Trophy, Settings, Bot, LogOut, User } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import SelectDifficultyDialog from './SelectDifficultyDialog';
 
 interface MainMenuProps {
-  onModeSelect: (mode: 'local' | 'online' | 'ai') => void;
+  onModeSelect: (mode: 'local' | 'online' | 'ai', difficulty?: 'easy' | 'medium' | 'hard') => void;
 }
 
 const MainMenu = ({ onModeSelect }: MainMenuProps) => {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+  const [showDifficulty, setShowDifficulty] = useState(false);
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -65,6 +67,8 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
         </p>
       </motion.div>
       
+      {/* Difficulty dialog is launched when AI card is clicked */}
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full mb-12">
         {menuItems.map((item, index) => {
           const Icon = item.icon;
@@ -83,7 +87,13 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
                   transition-all duration-300 hover:scale-105
                   ${hoveredCard === item.id ? 'border-primary shadow-neon' : 'border-border'}
                 `}
-                onClick={() => onModeSelect(item.id as 'local' | 'online' | 'ai')}
+                onClick={() => {
+                  if (item.id === 'ai') {
+                    setShowDifficulty(true);
+                  } else {
+                    onModeSelect(item.id as 'local' | 'online' | 'ai');
+                  }
+                }}
               >
                 <div className="p-8 flex flex-col items-center text-center space-y-4">
                   <div 
@@ -104,6 +114,15 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
           );
         })}
       </div>
+
+      {/* Difficulty selector modal (shown only after clicking AI) */}
+      {showDifficulty && (
+        <SelectDifficultyDialog
+          open={showDifficulty}
+          onOpenChange={(open) => setShowDifficulty(open)}
+          onSelect={(difficulty) => onModeSelect('ai', difficulty)}
+        />
+      )}
       
       <motion.div
         initial={{ opacity: 0 }}
@@ -116,6 +135,7 @@ const MainMenu = ({ onModeSelect }: MainMenuProps) => {
             <Button 
               variant="outline" 
               size="lg" 
+              onClick={() => navigate('/profile')}
               className="border-primary/50 hover:border-primary hover:bg-primary/10"
             >
               <User className="mr-2" />

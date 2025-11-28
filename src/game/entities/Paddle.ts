@@ -29,6 +29,9 @@ export class Paddle {
     const body = this.sprite.body as Phaser.Physics.Arcade.Body;
     body.setCollideWorldBounds(true);
     body.setImmovable(true);
+    // Add drag so sudden velocity changes are smoothed out
+    // Reduce drag further for very snappy response (AI can sprint)
+    body.setDrag(100, 100);
   }
   
   move(direction: 'up' | 'down' | 'stop', delta: number) {
@@ -49,6 +52,27 @@ export class Paddle {
       body.setVelocityY(0);
     }
     
+    this.updateGlow(this.sprite.x, this.sprite.y);
+  }
+
+  // Set raw vertical velocity (used by AI for smooth proportional movement)
+  setVelocity(y: number) {
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    if (!body) return;
+    // Clamp velocity to configured max speed
+    const clamped = Phaser.Math.Clamp(y, -PADDLE_CONFIG.speed, PADDLE_CONFIG.speed);
+    body.setVelocityY(clamped);
+    this.updateGlow(this.sprite.x, this.sprite.y);
+  }
+
+  // Smoothly move current velocity toward target velocity to reduce jitter
+  setVelocitySmoothed(targetY: number, alpha = 0.2) {
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body;
+    if (!body) return;
+    const current = body.velocity.y;
+    const clampedTarget = Phaser.Math.Clamp(targetY, -PADDLE_CONFIG.speed, PADDLE_CONFIG.speed);
+    const smoothed = Phaser.Math.Linear(current, clampedTarget, alpha);
+    body.setVelocityY(smoothed);
     this.updateGlow(this.sprite.x, this.sprite.y);
   }
   

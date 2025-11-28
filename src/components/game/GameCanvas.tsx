@@ -8,9 +8,10 @@ interface GameCanvasProps {
   mode: 'local' | 'online' | 'ai';
   side?: 'left' | 'right';
   onGameEnd?: () => void;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
-const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
+const GameCanvas = ({ mode, side = 'left', onGameEnd, difficulty = 'medium' }: GameCanvasProps) => {
   const gameRef = useRef<Phaser.Game | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showExitDialog, setShowExitDialog] = useState(false);
@@ -30,15 +31,17 @@ const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
     };
     
     gameRef.current = new Phaser.Game(config);
-    
-    // Start game scene with exit callback
-    if (gameRef.current.scene.keys['GameScene']) {
-      gameRef.current.scene.start('GameScene', { 
-        mode, 
-        side,
-        onExitRequest: () => setShowExitDialog(true)
-      });
-    }
+
+    // Start the scene immediately and pass startup data (avoid relying on 'ready' event)
+    gameRef.current.scene.start('GameScene', {
+      mode,
+      side,
+      difficulty,
+      onExitRequest: () => setShowExitDialog(true),
+      onGameEnd: () => {
+        if (onGameEnd) onGameEnd();
+      },
+    });
     
     // Auto-focus the game canvas
     setTimeout(() => {
@@ -56,7 +59,7 @@ const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
         gameRef.current = null;
       }
     };
-  }, [mode, side]);
+  }, [mode, side, difficulty, onGameEnd]);
   
   const handleConfirmExit = () => {
     setShowExitDialog(false);
@@ -68,7 +71,7 @@ const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
   const handleCancelExit = () => {
     setShowExitDialog(false);
     // Resume the game by calling the scene's resume method
-    const scene = gameRef.current?.scene?.scenes?.[0] as GameScene;
+    const scene = gameRef.current?.scene?.getScene('GameScene') as GameScene;
     if (scene && scene.resumeGame) {
       scene.resumeGame();
     }
@@ -77,6 +80,20 @@ const GameCanvas = ({ mode, side = 'left', onGameEnd }: GameCanvasProps) => {
   return (
     <>
     <div className="relative w-full h-full flex items-center justify-center bg-deep-space">
+      <button
+        className="absolute top-4 right-4 z-40 bg-card/80 border border-border px-3 py-1 rounded text-sm hover:bg-card"
+        onClick={() => {
+          // Pause the running scene and open confirm dialog
+          const scene = gameRef.current?.scene?.getScene('GameScene') as any;
+          if (scene && scene.physics) {
+            scene.physics.pause();
+          }
+          setShowExitDialog(true);
+        }}
+        aria-label="Exit Game"
+      >
+        Exit
+      </button>
       <div 
         ref={containerRef} 
         className="rounded-lg overflow-hidden shadow-neon cursor-pointer"
